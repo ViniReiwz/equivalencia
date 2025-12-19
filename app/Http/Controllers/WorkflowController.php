@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Uspdev\Workflow\Models\WorkflowDefinition;
 use Uspdev\Workflow\Workflow;
 use Uspdev\Forms\Form;
 
@@ -146,6 +147,28 @@ class WorkflowController extends Controller
         $workflowsDisplay = Workflow::listarWorkflowsObjectsRelacionados();
         return view('userRelatedObjects', compact('workflowsDisplay'));
 
+    }
+
+    public function exportDefinition($definitionName)
+    {
+        $file_dir = base_path(config('workflow.storagePath'));
+        if(!is_dir($file_dir))
+        {
+            mkdir($file_dir,0777,true);
+        }
+
+        $file_path = $file_dir . "/$definitionName" . ".json";
+
+        $json_file = fopen($file_path,"w");
+
+        $workflowDef = WorkflowDefinition::where('name',$definitionName)->firstOrFail();
+
+        $json_encoded = json_encode($workflowDef['definition'],JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        
+        fwrite($json_file,$json_encoded);
+        fclose($json_file);
+
+        return redirect()->route('workflows.showDefinition',$workflowDef['name']);
     }
     
 }
