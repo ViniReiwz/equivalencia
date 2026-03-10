@@ -82,7 +82,7 @@ class WorkflowSync extends Command
                         'definition' => $workflow_def,  
                     ]
                 );
-                fclose($workflow_json_file);
+                // fclose($workflow_json_file);
             }
         }
     }
