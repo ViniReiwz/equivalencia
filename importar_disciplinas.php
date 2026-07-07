@@ -1,4 +1,3 @@
-
 use App\Enums\DisciplinaRole;
 use App\Enums\EquivalenciaTipo;
 use App\Models\Aproveitamento;
@@ -35,6 +34,62 @@ $dadosPreenchidos = static function (array $dados): array {
 // Padroniza os códigos para facilitar validações e comparações.
 $normalizarCodigo = static function (string $codigo): string {
     return strtoupper((string) preg_replace('/\s+/u', '', trim($codigo)));
+};
+
+$camposAdministrativos = ['numero_reuniao', 'data_reuniao', 'observacoes'];
+
+$normalizarDataReuniao = static function ($valor): ?string {
+    if ($valor === null || $valor === '') {
+        return null;
+    }
+
+    $valor = trim((string) $valor);
+    $formatos = ['!d/m/Y', '!Y-m-d'];
+
+    foreach ($formatos as $formato) {
+        $data = DateTimeImmutable::createFromFormat($formato, $valor);
+        $erros = DateTimeImmutable::getLastErrors();
+
+        if ($data !== false && ($erros === false || ($erros['warning_count'] === 0 && $erros['error_count'] === 0))) {
+            return $data->format('Y-m-d');
+        }
+    }
+
+    throw new InvalidArgumentException("data_reuniao inválida ({$valor}). Use dd/mm/aaaa ou aaaa-mm-dd.");
+};
+
+$normalizarCampoAdministrativo = static function (string $campo, $valor) use ($normalizarDataReuniao) {
+    if (is_string($valor)) {
+        $valor = trim($valor);
+    }
+
+    if ($valor === null || $valor === '') {
+        return null;
+    }
+
+    return match ($campo) {
+        'numero_reuniao' => (int) $valor,
+        'data_reuniao' => $normalizarDataReuniao($valor),
+        'observacoes' => (string) $valor,
+        default => $valor,
+    };
+};
+
+$camposAdministrativosDoJson = static function (
+    array $linha,
+    array $valoresGlobais = []
+) use ($camposAdministrativos, $normalizarCampoAdministrativo): array {
+    $dados = [];
+
+    foreach ($camposAdministrativos as $campo) {
+        if (array_key_exists($campo, $linha)) {
+            $dados[$campo] = $normalizarCampoAdministrativo($campo, $linha[$campo]);
+        } elseif (array_key_exists($campo, $valoresGlobais)) {
+            $dados[$campo] = $normalizarCampoAdministrativo($campo, $valoresGlobais[$campo]);
+        }
+    }
+
+    return $dados;
 };
 
 $registrarSemDadosReplicado = static function (
@@ -207,6 +262,15 @@ foreach ($arquivos as $caminho) {
     $codcur = (int) $mCurso[2];
     $codhab = (int) $mCurso[3];
 
+    try {
+        $camposAdministrativosGlobais = $camposAdministrativosDoJson($primeiroItem);
+    } catch (Throwable $erro) {
+        echo 'Campos administrativos globais inválidos em ' . basename($caminho) . ': ' . $erro->getMessage() . "\n";
+        $ignoradas++;
+
+        continue;
+    }
+
     // O primeiro item contém o curso; os demais são conjuntos de equivalência.
     foreach (array_slice($dados, 1) as $i => $linha) {
         // Soma dois porque o array começa em zero e o primeiro item é o curso.
@@ -310,6 +374,7 @@ foreach ($arquivos as $caminho) {
                 fn(string $codigo): array => $dadosDaCursada($codigo, $nomeCursadaFallback),
                 $codigosCursada
             );
+            $dadosAdministrativos = $camposAdministrativosDoJson($linha, $camposAdministrativosGlobais);
 
             // A transação evita salvar um aproveitamento incompleto.
             $resultado = DB::transaction(function () use (
@@ -317,6 +382,7 @@ foreach ($arquivos as $caminho) {
                 $codhab,
                 $dadosRequerida,
                 $dadosCursadas,
+                $dadosAdministrativos,
                 $chaveDisciplina,
                 $mesmoConjuntoDeDisciplinas,
                 $dadosPreenchidos
@@ -350,6 +416,10 @@ foreach ($arquivos as $caminho) {
                     // mantendo valores antigos quando a nova consulta vier vazia.
                     $aproveitamentoExistente->requerida?->update($dadosPreenchidos($dadosRequerida));
 
+                    if ($dadosAdministrativos !== []) {
+                        $aproveitamentoExistente->update($dadosAdministrativos);
+                    }
+
                     $cursadasPorIdentidade = $aproveitamentoExistente->cursadas
                         ->keyBy(fn(Disciplina $disciplina) => $chaveDisciplina($disciplina));
 
@@ -363,11 +433,11 @@ foreach ($arquivos as $caminho) {
                 }
 
                 // Não encontrou conjunto igual: cria um novo aproveitamento automático.
-                $aproveitamento = Aproveitamento::create([
+                $aproveitamento = Aproveitamento::create(array_merge([
                     'tipo' => EquivalenciaTipo::AUTOMATICA,
                     'codcur' => $codcur,
                     'codhab' => $codhab,
-                ]);
+                ], $dadosAdministrativos));
 
                 // Cada aproveitamento possui exatamente uma disciplina requerida.
                 Disciplina::create(array_merge($dadosRequerida, [
