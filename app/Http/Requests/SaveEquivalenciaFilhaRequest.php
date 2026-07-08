@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\EquivalenciaTipo;
 use App\Enums\Permission;
 use App\Models\Disciplina;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,6 +20,7 @@ class SaveEquivalenciaFilhaRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'equivalente' => ['nullable', 'boolean'],
             'is_usp' => ['nullable', 'boolean'],
             'coddis' => ['nullable', 'string', 'max:'.$this->maxCoddisLength(''), 'min:3'],
             'verdis' => ['nullable', 'integer', 'min:1', 'max:255'],
@@ -49,6 +51,11 @@ class SaveEquivalenciaFilhaRequest extends FormRequest
     private function maxCoddisLength(string $sufixo): int
     {
         return $this->boolean('is_usp'.$sufixo) ? 7 : 15;
+    }
+
+    public function tipoAutomatico(): EquivalenciaTipo
+    {
+        return EquivalenciaTipo::automaticoPorEquivalencia($this->boolean('equivalente', true));
     }
 
     /**

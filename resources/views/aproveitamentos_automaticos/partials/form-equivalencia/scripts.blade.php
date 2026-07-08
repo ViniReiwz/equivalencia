@@ -55,10 +55,23 @@ e limitando o número de blocos de equivalência que podem ser exibidos.
           });
         }
 
+        // Sincroniza o tipo de equivalência (equivalente ou não equivalente) com base no checkbox
+        function syncEquivalenceType(form) {
+          var checkbox = form.querySelector('.js-equivalencia-tipo');
+          var label = form.querySelector('.js-equivalencia-tipo-text');
+
+          if (!checkbox || !label) {
+            return;
+          }
+
+          label.textContent = checkbox.checked ? 'Equivalente' : 'Não equivalente';
+        }
+
         function syncForm(form) {
           var blocks = asArray(form.querySelectorAll('[data-equivalencia-block]'));
           var addButton = form.querySelector('.js-add-equivalencia');
 
+          syncEquivalenceType(form);
           blocks.forEach(syncBlock);
 
           if (addButton) {
@@ -76,6 +89,10 @@ e limitando o número de blocos de equivalência que podem ser exibidos.
           form.addEventListener('change', function(event) {
             if (event.target.classList.contains('js-equivalencia-is-usp')) {
               syncBlock(event.target.closest('[data-equivalencia-block]'));
+            }
+
+            if (event.target.classList.contains('js-equivalencia-tipo')) {
+              syncEquivalenceType(form);
             }
           });
 

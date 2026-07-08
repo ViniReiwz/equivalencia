@@ -1,5 +1,24 @@
 <fieldset class="border rounded p-3 mb-3">
-  <legend class="h5">Dados da reunião</legend>
+  <legend class="h5 w-auto px-2">Tipo de aproveitamento</legend>
+
+  <input type="hidden" name="equivalente" value="0">
+  <div class="d-flex align-items-center">
+    <span id="{{ $formId }}-equivalente-text" class="mr-3 js-equivalencia-tipo-text">
+      {{ $formState['administrative']['equivalente'] ? 'Equivalente' : 'Não equivalente' }}
+    </span>
+    <div class="custom-control custom-switch">
+      <input type="checkbox" class="custom-control-input js-equivalencia-tipo" id="{{ $formId }}-equivalente"
+        name="equivalente" value="1" aria-labelledby="{{ $formId }}-equivalente-text"
+        @checked($formState['administrative']['equivalente'])>
+      <label class="custom-control-label" for="{{ $formId }}-equivalente">
+        <span class="sr-only">Alternar tipo de aproveitamento</span>
+      </label>
+    </div>
+  </div>
+</fieldset>
+
+<fieldset class="border rounded p-3 mb-3">
+  <legend class="h5 w-auto px-2">Dados da reunião</legend>
 
   <div class="form-row">
     <div class="form-group col-md-6">

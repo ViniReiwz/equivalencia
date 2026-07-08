@@ -1,4 +1,8 @@
-@forelse ($disciplina->equivalentes as $equivalenciaRepresentante)
+@php
+  $aproveitamentos = $aproveitamentos ?? $disciplina->equivalentes;
+@endphp
+
+@forelse ($aproveitamentos as $equivalenciaRepresentante)
   <div class="disciplina-equivalente d-flex align-items-center flex-nowrap mb-2">
     <p class="mb-0 text-truncate">
       @foreach ($equivalenciaRepresentante->cursadas as $e)

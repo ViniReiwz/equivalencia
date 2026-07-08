@@ -179,6 +179,12 @@
         configureMethod(form, config.method);
         setContext(form, key);
 
+        var equivalenteCheckbox = form.querySelector('[name="equivalente"][type="checkbox"]');
+
+        if (equivalenteCheckbox) {
+          equivalenteCheckbox.checked = isTruthy(valueFor(values, 'equivalente'), true);
+        }
+
         // Preenche os campos gerais da equivalência.
         ['numero_reuniao', 'data_reuniao', 'observacoes'].forEach(function(field) {
           var input = form.querySelector('[name="' + field + '"]');

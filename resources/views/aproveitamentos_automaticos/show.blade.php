@@ -24,14 +24,20 @@
           <thead>
             <tr>
               <th>Disciplina requerida</th>
-              <th>Disciplinas cursadas (IES)</th>
+              <th>Disciplinas cursadas equivalentes(IES)</th>
+              <th>Disciplinas não equivalentes(IES)</th>
             </tr>
           </thead>
           <tbody>
             @foreach ($disciplinas as $disciplina)
               <tr>
                 <td>@include('aproveitamentos_automaticos.partials.display.disciplina-requerida')</td>
-                <td>@include('aproveitamentos_automaticos.partials.display.disciplinas-equivalentes')</td>
+                <td>@include('aproveitamentos_automaticos.partials.display.disciplinas-equivalentes', [
+                    'aproveitamentos' => $disciplina->equivalentes,
+                ])</td>
+                <td>@include('aproveitamentos_automaticos.partials.display.disciplinas-equivalentes', [
+                    'aproveitamentos' => $disciplina->desequivalentes,
+                ])</td>
               </tr>
             @endforeach
           </tbody>
