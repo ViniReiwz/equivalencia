@@ -169,14 +169,14 @@ class AproveitamentoAutomaticoController extends Controller
                 ];
 
                 $data['equivalenceForms']['add-' . $disciplina->id] = [
-                    'title' => 'Adicionar disciplina cursada equivalente',
+                    'title' => 'Adicionar disciplina cursada',
                     'action' => route('equivalencias.add-equivalencia', [$codcur, $codhab, $disciplina]),
                     'method' => 'POST',
                     'values' => [],
                 ];
             }
 
-            foreach ($disciplina->equivalentes as $equivalencia) {
+            foreach ($this->aproveitamentosDaDisciplina($disciplina) as $equivalencia) {
                 foreach ($equivalencia->cursadas as $cursada) {
                     $detailsKey = 'equivalence-' . $cursada->id;
                     $data['details'][$detailsKey] = $this->disciplineDetails(
@@ -192,9 +192,9 @@ class AproveitamentoAutomaticoController extends Controller
                 continue;
             }
 
-            foreach ($disciplina->equivalentes as $representante) {
+            foreach ($this->aproveitamentosDaDisciplina($disciplina) as $representante) {
                 $data['equivalenceForms']['edit-' . $representante->id] = [
-                    'title' => 'Editar disciplina cursada equivalente',
+                    'title' => 'Editar disciplina cursada',
                     'action' => route('equivalencias.update-equivalencia', [
                         $codcur,
                         $codhab,
@@ -208,6 +208,15 @@ class AproveitamentoAutomaticoController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * Retorna todos os aproveitamentos automáticos (equivalentes e desequivalentes) de uma disciplina USP.
+     */
+    private function aproveitamentosDaDisciplina(Disciplina $disciplina): \Illuminate\Support\Collection
+    {
+        return collect($disciplina->equivalentes ?? [])
+            ->merge($disciplina->desequivalentes ?? []);
     }
 
     /**
@@ -375,7 +384,8 @@ class AproveitamentoAutomaticoController extends Controller
             $equivalencia,
             $codcur,
             $codhab,
-            $request->conjuntosDeEquivalencia()
+            $request->conjuntosDeEquivalencia(),
+            $request->tipoAutomatico()
         );
 
         return redirect()
@@ -405,7 +415,8 @@ class AproveitamentoAutomaticoController extends Controller
             $equivalenciaFilha,
             $codcur,
             $codhab,
-            $request->conjuntosDeEquivalencia()
+            $request->conjuntosDeEquivalencia(),
+            $request->tipoAutomatico()
         );
 
         return redirect()

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DisciplinaRole;
+use App\Enums\EquivalenciaTipo;
 use App\Replicado\Graduacao;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -113,13 +114,24 @@ class Disciplina extends Model
             ]))
             ->map(function (Collection $grupo) {
                 $disciplina = $grupo->first();
+                $aproveitamentos = $grupo
+                    ->pluck('aproveitamento')
+                    ->filter()
+                    ->filter(fn (Aproveitamento $aproveitamento) => $aproveitamento->cursadas->isNotEmpty())
+                    ->sortBy('id')
+                    ->values();
+
                 $disciplina->setRelation(
                     'equivalentes',
-                    $grupo
-                        ->pluck('aproveitamento')
-                        ->filter()
-                        ->filter(fn (Aproveitamento $aproveitamento) => $aproveitamento->cursadas->isNotEmpty())
-                        ->sortBy('id')
+                    $aproveitamentos
+                        ->filter(fn (Aproveitamento $aproveitamento) => $aproveitamento->tipo?->isAutomaticaEquivalente())
+                        ->values()
+                );
+
+                $disciplina->setRelation(
+                    'desequivalentes',
+                    $aproveitamentos
+                        ->filter(fn (Aproveitamento $aproveitamento) => $aproveitamento->tipo === EquivalenciaTipo::AUTOMATICA_DESEQUIVALENTE)
                         ->values()
                 );
 
@@ -138,7 +150,12 @@ class Disciplina extends Model
         $versoesPorCodigo = [];
         $vigencias = [];
 
-        foreach ($disciplinas->flatMap->equivalentes as $equivalencia) {
+        $aproveitamentos = $disciplinas->flatMap(function (Disciplina $disciplina) {
+            return collect($disciplina->equivalentes ?? [])
+                ->merge($disciplina->desequivalentes ?? []);
+        });
+
+        foreach ($aproveitamentos as $equivalencia) {
             foreach ($equivalencia->cursadas as $cursada) {
                 if ($cursada->ies !== 'USP' || ! filled($cursada->verdis)) {
                     continue;
@@ -551,6 +568,9 @@ class Disciplina extends Model
             'maxDisciplinas' => $maxDisciplinas,
             'initialVisible' => $initialVisible,
             'administrative' => [
+                'equivalente' => $fieldValue('equivalente') === null
+                    ? true
+                    : filter_var($fieldValue('equivalente'), FILTER_VALIDATE_BOOLEAN),
                 'numero_reuniao' => $fieldValue('numero_reuniao'),
                 'data_reuniao' => $fieldValue('data_reuniao'),
                 'observacoes' => $fieldValue('observacoes'),
@@ -575,6 +595,7 @@ class Disciplina extends Model
         $value = fn(string $field, $default) => $useOldInput ? old($field, $default) : $default;
 
         return [
+            'equivalente' => $value('equivalente', $equivalenciaFilha->tipo?->isAutomaticaEquivalente() ? 1 : 0),
             'coddis' => $value('coddis', $cursada1?->coddis),
             'verdis' => $value('verdis', $cursada1?->verdis),
             'nome_disciplina' => $value('nome_disciplina', $cursada1?->nome_disciplina),

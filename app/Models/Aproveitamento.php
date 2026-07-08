@@ -22,7 +22,11 @@ class Aproveitamento extends Model
 
     public const ESTADO_NEGADO = EquivalenciaEstado::NEGADO->value;
 
-    public const TIPO_AUTOMATICA = EquivalenciaTipo::AUTOMATICA->value;
+    public const TIPO_AUTOMATICA = EquivalenciaTipo::AUTOMATICA_EQUIVALENTE->value;
+
+    public const TIPO_AUTOMATICA_EQUIVALENTE = EquivalenciaTipo::AUTOMATICA_EQUIVALENTE->value;
+
+    public const TIPO_AUTOMATICA_DESEQUIVALENTE = EquivalenciaTipo::AUTOMATICA_DESEQUIVALENTE->value;
 
     public const TIPO_SOLICITADA = EquivalenciaTipo::SOLICITADA->value;
 
@@ -85,7 +89,17 @@ class Aproveitamento extends Model
 
     public function scopeAutomaticas(Builder $query): Builder
     {
-        return $query->where('tipo', EquivalenciaTipo::AUTOMATICA->value);
+        return $query->whereIn('tipo', EquivalenciaTipo::valoresAutomaticos());
+    }
+
+    public function scopeAutomaticasEquivalentes(Builder $query): Builder
+    {
+        return $query->where('tipo', EquivalenciaTipo::AUTOMATICA_EQUIVALENTE->value);
+    }
+
+    public function scopeAutomaticasDesequivalentes(Builder $query): Builder
+    {
+        return $query->where('tipo', EquivalenciaTipo::AUTOMATICA_DESEQUIVALENTE->value);
     }
 
     public function scopeRequeridas(Builder $query): Builder
@@ -168,10 +182,14 @@ class Aproveitamento extends Model
         return (int) $this->codcur === $codcur && (int) $this->codhab === $codhab;
     }
 
-    public static function criarAutomatico(int $codcur, int $codhab): self
+    public static function criarAutomatico(
+        int $codcur,
+        int $codhab,
+        EquivalenciaTipo $tipo = EquivalenciaTipo::AUTOMATICA_EQUIVALENTE
+    ): self
     {
         return static::create([
-            'tipo' => EquivalenciaTipo::AUTOMATICA,
+            'tipo' => $tipo,
             'codcur' => $codcur,
             'codhab' => $codhab,
         ]);
@@ -181,11 +199,12 @@ class Aproveitamento extends Model
         Disciplina $requerida,
         int $codcur,
         int $codhab,
-        array $conjuntosDeCursadas
+        array $conjuntosDeCursadas,
+        EquivalenciaTipo $tipo = EquivalenciaTipo::AUTOMATICA_EQUIVALENTE
     ): void {
-        DB::transaction(function () use ($requerida, $codcur, $codhab, $conjuntosDeCursadas) {
+        DB::transaction(function () use ($requerida, $codcur, $codhab, $conjuntosDeCursadas, $tipo) {
             $aproveitamento = static::create([
-                'tipo' => EquivalenciaTipo::AUTOMATICA,
+                'tipo' => $tipo,
                 'codcur' => $codcur,
                 'codhab' => $codhab,
                 'numero_reuniao' => $conjuntosDeCursadas[0]['numero_reuniao'] ?? null,
@@ -220,12 +239,14 @@ class Aproveitamento extends Model
         self $aproveitamento,
         int $codcur,
         int $codhab,
-        array $conjuntosDeCursadas
+        array $conjuntosDeCursadas,
+        EquivalenciaTipo $tipo = EquivalenciaTipo::AUTOMATICA_EQUIVALENTE
     ): void {
         abort_unless($aproveitamento->isAutomaticoDaRequeridaNoContexto($requerida, $codcur, $codhab), 404);
 
-        DB::transaction(function () use ($aproveitamento, $conjuntosDeCursadas) {
+        DB::transaction(function () use ($aproveitamento, $conjuntosDeCursadas, $tipo) {
             $aproveitamento->update([
+                'tipo' => $tipo,
                 'numero_reuniao' => $conjuntosDeCursadas[0]['numero_reuniao'] ?? null,
                 'data_reuniao' => $conjuntosDeCursadas[0]['data_reuniao'] ?? null,
                 'observacoes' => $conjuntosDeCursadas[0]['observacoes'] ?? null,
@@ -299,7 +320,8 @@ class Aproveitamento extends Model
     ): array {
         return $disciplinas
             ->reduce(function (array $forms, Disciplina $disciplinaUsp) use ($useOldInput) {
-                $formsDaDisciplina = $disciplinaUsp->equivalentes
+                $formsDaDisciplina = collect($disciplinaUsp->equivalentes ?? [])
+                    ->merge($disciplinaUsp->desequivalentes ?? [])
                     ->mapWithKeys(function (Aproveitamento $equivalenciaFilha) use ($disciplinaUsp, $useOldInput) {
                         return [
                             $equivalenciaFilha->id => $disciplinaUsp->defaultsParaFormularioEdicaoDeGrupo(
@@ -435,7 +457,7 @@ class Aproveitamento extends Model
     {
         $this->loadMissing('requerida');
 
-        return $this->tipo === EquivalenciaTipo::AUTOMATICA
+        return $this->tipo?->isAutomatica()
             && $this->pertenceAoContexto($codcur, $codhab)
             && $this->requerida
             && $this->requerida->coddis === $requerida->coddis

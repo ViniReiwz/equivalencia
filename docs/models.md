@@ -142,7 +142,8 @@ e pode ser deferida ou negada.
 
 ### Aproveitamento automático
 
-O fluxo automático trabalha com `Aproveitamento` do tipo `automatica`. Esse tipo
+O fluxo automático trabalha com `Aproveitamento` dos tipos
+`automatica_equivalente` e `automatica_desequivalente`. Esses tipos
 não representa uma solicitação pendente do aluno: representa uma equivalência já
 cadastrada pela secretaria/SVGrad como regra válida para um curso e habilitação.
 
