@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\Permission;
 use App\Models\Disciplina;
+use App\Replicado\Graduacao;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreEquivalenciaRequest extends FormRequest
@@ -44,6 +45,19 @@ class StoreEquivalenciaRequest extends FormRequest
 
                 if (! $disciplina || ! isset($disciplina['verdis'])) {
                     $validator->errors()->add('coddis', 'Selecione uma disciplina USP válida.');
+
+                    return;
+                }
+
+                if (! app(Graduacao::class)->disciplinaPertenceAoCurriculo(
+                    (string) $disciplina['coddis'],
+                    $codcur,
+                    $codhab
+                )) {
+                    $validator->errors()->add(
+                        'coddis',
+                        'A disciplina requerida informada não faz parte da grade curricular deste curso/habilitação.'
+                    );
 
                     return;
                 }

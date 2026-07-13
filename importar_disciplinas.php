@@ -389,7 +389,7 @@ foreach ($arquivos as $caminho) {
             ): array {
                 // Procura um aproveitamento igual no mesmo curso e habilitação.
                 $aproveitamentosExistentes = Aproveitamento::query()
-                    ->automaticas()
+                    ->automaticasEquivalentes()
                     ->doContexto($codcur, $codhab)
                     ->whereHas('requerida', function ($query) use ($dadosRequerida) {
                         $query
@@ -434,7 +434,7 @@ foreach ($arquivos as $caminho) {
 
                 // Não encontrou conjunto igual: cria um novo aproveitamento automático.
                 $aproveitamento = Aproveitamento::create(array_merge([
-                    'tipo' => EquivalenciaTipo::AUTOMATICA,
+                    'tipo' => EquivalenciaTipo::AUTOMATICA_EQUIVALENTE,
                     'codcur' => $codcur,
                     'codhab' => $codhab,
                 ], $dadosAdministrativos));

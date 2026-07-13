@@ -13,6 +13,28 @@ class Graduacao extends GraduacaoReplicado
     private array $unidadesPorCoddis = [];
 
     /**
+     * Verifica se uma disciplina consta na grade curricular atual do curso/habilitação.
+     *
+     * A grade pode referenciar uma versão anterior da disciplina; por isso a associação
+     * é feita pelo código, que é a identidade curricular relevante neste cadastro.
+     */
+    public function disciplinaPertenceAoCurriculo(string $coddis, int $codcur, int $codhab): bool
+    {
+        $coddis = Str::upper(trim($coddis));
+
+        if ($coddis === '') {
+            return false;
+        }
+
+        try {
+            return collect(static::disciplinasCurriculo($codcur, $codhab))
+                ->contains(fn (array $disciplina) => Str::upper(trim((string) ($disciplina['coddis'] ?? ''))) === $coddis);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * Obtém os dados de uma disciplina ativa.
      * A busca por prefixo vem do uspdev/forms, mas este método só retorna correspondência exata de código.
      */
