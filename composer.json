@@ -18,12 +18,12 @@
     "require": {
         "php": "^8.2",
         "guzzlehttp/guzzle": "^7.0.1",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.5",
         "spatie/commonmark-highlighter": "^3.0",
         "spatie/laravel-permission": "^6.15",
-        "uspdev/forms": "^0.8.3",
+        "uspdev/forms": "^1.0",
         "uspdev/laravel-replicado": "^1.0",
         "uspdev/laravel-tools": "^1.2",
         "uspdev/laravel-usp-theme": "^2.7",
@@ -37,8 +37,8 @@
         "laravel/sail": "^1.0.1",
         "lucascudo/laravel-pt-br-localization": "^1.2",
         "mockery/mockery": "^1.4.4",
-        "nunomaduro/collision": "^8.1",
-        "phpunit/phpunit": "^10.0"
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^11.5"
     },
     "autoload": {
         "psr-4": {
